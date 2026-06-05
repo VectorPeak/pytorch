@@ -16,6 +16,7 @@ if(NOT __AOTRITON_INCLUDED)
       "manylinux_2_28"  # rocm7.1
       "manylinux_2_28"  # rocm7.2
       "manylinux_2_28"  # rocm7.13
+      "manylinux_2_28"  # rocm7.14
       )
   set(__AOTRITON_ROCM_LIST
       "rocm6.4"
@@ -23,6 +24,7 @@ if(NOT __AOTRITON_INCLUDED)
       "rocm7.1"
       "rocm7.2"
       "rocm7.13"
+      "rocm7.14"
       )
   if(DEFINED ENV{PYTORCH_AOTRITON_COMMIT})
     set(__AOTRITON_CI_COMMIT "$ENV{PYTORCH_AOTRITON_COMMIT}")
@@ -35,6 +37,7 @@ if(NOT __AOTRITON_INCLUDED)
       "a1d731745929b61598d088eeaad31d8a82a27032aa51e3a7c831e45a99e095c2"  # rocm7.1
       "5b97e8d041b160c84085961f3d3bd7b9890642b146bacb04c991aa9ad6a8dca8"  # rocm7.2
       "94d0b5bb9b7fc17f04b7c72f23a6f95b34760aea14380d052b284d75c6323f11"  # rocm7.13+asan
+      "8bb37c65a0368e95e444cb70a9c14acb6bba8e02bcdcc9b67240f011ded20430"  # rocm7.14+asan
       )
   set(__AOTRITON_IMAGE_LIST
       "amd-gfx90a"
