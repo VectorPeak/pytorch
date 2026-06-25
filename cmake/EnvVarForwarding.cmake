@@ -81,8 +81,24 @@ execute_process(
   OUTPUT_VARIABLE _all_env
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-string(REPLACE "\n" ";" _env_lines "${_all_env}")
-foreach(_line IN LISTS _env_lines)
+# Iterate the environment one line at a time using raw string operations rather
+# than string(REPLACE "\n" ";") + foreach(IN LISTS). Values such as PS1 contain
+# both ';' (e.g. ANSI color codes "01;32") and backslashes ("\[", "\$"); under
+# cmake list semantics those act as element separators and escape characters,
+# which mis-splits and merges adjacent lines and silently drops later variables
+# (e.g. USE_ASAN). FIND/SUBSTRING and if(MATCHES) operate on the literal string
+# and are immune to that.
+set(_env_remaining "${_all_env}")
+while(NOT "${_env_remaining}" STREQUAL "")
+  string(FIND "${_env_remaining}" "\n" _nl_pos)
+  if(_nl_pos EQUAL -1)
+    set(_line "${_env_remaining}")
+    set(_env_remaining "")
+  else()
+    string(SUBSTRING "${_env_remaining}" 0 ${_nl_pos} _line)
+    math(EXPR _nl_next "${_nl_pos} + 1")
+    string(SUBSTRING "${_env_remaining}" ${_nl_next} -1 _env_remaining)
+  endif()
   if(_line MATCHES "^([A-Za-z_0-9]+)=(.*)")
     set(_var_name "${CMAKE_MATCH_1}")
     set(_var_value "${CMAKE_MATCH_2}")
@@ -103,7 +119,7 @@ foreach(_line IN LISTS _env_lines)
       set(${_var_name} "${_var_value}" CACHE STRING "From environment" FORCE)
     endif()
   endif()
-endforeach()
+endwhile()
 
 # Low-priority aliases
 foreach(_alias IN LISTS _LOW_PRIORITY_ALIASES)
