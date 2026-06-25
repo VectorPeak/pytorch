@@ -114,6 +114,23 @@ if(CAFFE2_CMAKE_BUILDING_WITH_MAIN_REPO AND NOT INTERN_BUILD_MOBILE)
   enable_ubsan()
 endif()
 
+# Record whether ASAN was explicitly requested before any auto-disable below can
+# mask it. A request is the cache variable being truthy (from -DUSE_ASAN=ON or a
+# forwarded USE_ASAN env var) or the USE_ASAN environment variable itself being
+# set to a truthy value -- the latter also catches the case where env-var
+# forwarding failed to seed the cache variable at all.
+set(_USE_ASAN_REQUESTED FALSE)
+if(USE_ASAN)
+  set(_USE_ASAN_REQUESTED TRUE)
+elseif(DEFINED ENV{USE_ASAN})
+  string(TOUPPER "$ENV{USE_ASAN}" _asan_env_value)
+  if(NOT _asan_env_value STREQUAL "" AND NOT _asan_env_value STREQUAL "OFF"
+     AND NOT _asan_env_value STREQUAL "0" AND NOT _asan_env_value STREQUAL "FALSE"
+     AND NOT _asan_env_value STREQUAL "NO" AND NOT _asan_env_value STREQUAL "N")
+    set(_USE_ASAN_REQUESTED TRUE)
+  endif()
+endif()
+
 if(USE_ASAN OR USE_LSAN OR USE_TSAN)
   find_package(Sanitizer REQUIRED)
   if(USE_ASAN)
@@ -162,6 +179,28 @@ if(USE_ASAN OR USE_LSAN OR USE_TSAN)
       caffe2_update_option(USE_TSAN OFF)
     endif()
   endif()
+endif()
+
+# Gate: if ASAN was explicitly requested but is not effectively enabled, abort
+# configuration (before CMakeCache.txt is finalized) instead of silently
+# emitting a non-instrumented build. This happens when the sanitizer probe in
+# cmake/Modules/FindSanitizer.cmake fails to compile+run the test program (e.g.
+# the -shared-libasan binary cannot locate libclang_rt.asan-x86_64.so at
+# runtime), or when the USE_ASAN env var never reached CMake. Required so
+# internal ASAN builds fail loudly rather than producing a non-ASAN artifact.
+set(_asan_effective FALSE)
+if(USE_ASAN AND TARGET Sanitizer::address)
+  set(_asan_effective TRUE)
+endif()
+if(_USE_ASAN_REQUESTED AND NOT _asan_effective)
+  message(FATAL_ERROR
+    "USE_ASAN was requested (via -DUSE_ASAN or the USE_ASAN environment "
+    "variable) but Address Sanitizer is not enabled in this configuration "
+    "(USE_ASAN='${USE_ASAN}', Sanitizer::address target present='${_asan_effective}'). "
+    "The sanitizer probe in cmake/Modules/FindSanitizer.cmake likely failed to "
+    "compile+run its test program -- e.g. the -shared-libasan binary cannot "
+    "locate libclang_rt.asan-x86_64.so at runtime, or the USE_ASAN env var did "
+    "not reach CMake. Refusing to produce a non-instrumented build.")
 endif()
 
 # ---[ Threads
