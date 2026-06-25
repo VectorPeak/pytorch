@@ -92,7 +92,14 @@ foreach(_line IN LISTS _env_lines)
     if(NOT _has_prefix AND NOT _has_suffix)
       continue()
     endif()
-    if(NOT DEFINED ${_var_name})
+    # An explicitly-set environment variable takes priority, matching the -D
+    # semantics this forwarding emulates. We override (not just fill when
+    # undefined) so a value left in the cache by an earlier env-less configure
+    # -- an option() default, or a value written by a ninja-triggered
+    # reconfigure -- cannot permanently shadow the env var. Without this, e.g.
+    # once USE_ASAN:BOOL=OFF is cached, USE_ASAN=1 in the environment is ignored
+    # on every subsequent configure until the cache entry is deleted by hand.
+    if(NOT DEFINED ${_var_name} OR NOT "${${_var_name}}" STREQUAL "${_var_value}")
       set(${_var_name} "${_var_value}" CACHE STRING "From environment" FORCE)
     endif()
   endif()
