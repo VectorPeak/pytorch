@@ -1516,23 +1516,25 @@ if(USE_ROCM)
 
         target_link_libraries(torch_rocshmem PRIVATE roc::rocshmem)
 
-        # roc::rocshmem ships the __device__ implementations of the rocSHMEM API
-        # in per-arch bitcode (librocshmem_device_<arch>.bc), separate from the
-        # host archive. Pass it straight to the device (offload) linker so it
+        # The ASAN ROCm SDK ships the __device__ implementations of the rocSHMEM
+        # API in per-arch bitcode (librocshmem_device_<arch>.bc), separate from
+        # the host archive. Pass it straight to the device (offload) linker so it
         # joins the device LTO link as bitcode and the symbols our kernels
         # reference stay live. Routing it through the normal HIP input path
         # instead recompiles it in isolation with -fvisibility=hidden and
         # -amdgpu-internalize-symbols, which dead-strips the library symbols
         # before the consumer's references are ever seen.
-        foreach(_arch ${_torch_rocshmem_build_arches})
-          string(REGEX REPLACE ":.*" "" _arch_base "${_arch}")
-          set(_dev_bc "$ENV{ROCM_PATH}/lib/librocshmem_device_${_arch_base}.bc")
-          if(EXISTS "${_dev_bc}")
-            target_link_options(torch_rocshmem PRIVATE "SHELL:-Xoffload-linker ${_dev_bc}")
-          else()
-            message(WARNING "rocSHMEM device bitcode not found for ${_arch_base}: ${_dev_bc}")
-          endif()
-        endforeach()
+        if(USE_ASAN)
+          foreach(_arch ${_torch_rocshmem_build_arches})
+            string(REGEX REPLACE ":.*" "" _arch_base "${_arch}")
+            set(_dev_bc "$ENV{ROCM_PATH}/lib/librocshmem_device_${_arch_base}.bc")
+            if(EXISTS "${_dev_bc}")
+              target_link_options(torch_rocshmem PRIVATE "SHELL:-Xoffload-linker ${_dev_bc}")
+            else()
+              message(WARNING "rocSHMEM device bitcode not found for ${_arch_base}: ${_dev_bc}")
+            endif()
+          endforeach()
+        endif()
 
         target_link_libraries(torch_hip PRIVATE torch_rocshmem)
 

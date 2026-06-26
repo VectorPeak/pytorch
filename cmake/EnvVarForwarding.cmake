@@ -78,10 +78,11 @@ endforeach()
 # environment to text and re-parsing it in CMake is unsafe: values such as PS1
 # contain ';' and '\' (and some exported shell functions even contain newlines),
 # all of which collide with CMake's list, escape, and line semantics and
-# silently corrupt unrelated variables. Since building PyTorch already requires
-# Python, read os.environ directly there -- the full environment is never
-# serialized -- and have it emit only the selected, properly escaped cache
-# assignments for CMake to evaluate.
+# silently corrupt unrelated variables. The top-level CMakeLists.txt already
+# requires Python (find_package(Python COMPONENTS Interpreter REQUIRED)) before
+# including this module, so read os.environ directly there -- the full
+# environment is never serialized -- and have it emit only the selected,
+# properly escaped cache assignments for CMake to evaluate.
 
 # Applies one forwarded variable. An explicitly-set environment variable takes
 # priority, matching the -D semantics this module emulates: override the cache
@@ -93,16 +94,6 @@ function(_envfwd_apply _name _value)
     set(${_name} "${_value}" CACHE STRING "From environment" FORCE)
   endif()
 endfunction()
-
-set(_envfwd_python "${Python_EXECUTABLE}")
-if(NOT _envfwd_python)
-  find_program(_envfwd_python NAMES python3 python)
-endif()
-if(NOT _envfwd_python)
-  message(FATAL_ERROR
-    "EnvVarForwarding requires Python to read the environment safely; set "
-    "Python_EXECUTABLE or put python3 on PATH.")
-endif()
 
 # Reads os.environ and prints `_envfwd_apply("<name>" "<value>")` for each
 # selected variable, escaping the value for a CMake double-quoted argument.
@@ -125,7 +116,7 @@ sys.stdout.write("\n".join(
 ]==])
 
 execute_process(
-  COMMAND "${_envfwd_python}" -c "${_envfwd_script}"
+  COMMAND "${Python_EXECUTABLE}" -c "${_envfwd_script}"
   OUTPUT_VARIABLE _envfwd_code
   RESULT_VARIABLE _envfwd_rc
 )
