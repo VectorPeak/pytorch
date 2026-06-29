@@ -2220,19 +2220,22 @@ class PythonProcessGroupExtensionTest(MultiProcessTestCase):
 
         new_group_called = False
         new_group_ranks = None
+        new_group_backend = None
 
         class _DelegatingPG(DummyProcessGroup):
             def new_group(
                 self,
                 ranks,
                 timeout=None,
+                backend=None,
                 pg_options=None,
                 group_name=None,
                 group_desc=None,
             ):
-                nonlocal new_group_called, new_group_ranks
+                nonlocal new_group_called, new_group_ranks, new_group_backend
                 new_group_called = True
                 new_group_ranks = list(ranks)
+                new_group_backend = backend
                 my_rank = self.rank()
                 if my_rank not in ranks:
                     return None
@@ -2256,6 +2259,7 @@ class PythonProcessGroupExtensionTest(MultiProcessTestCase):
             sub_pg = dist.new_group(ranks=[0])
             self.assertTrue(new_group_called)
             self.assertEqual(new_group_ranks, [0])
+            self.assertEqual(new_group_backend, "delegating")
 
             if self.rank == 0:
                 self.assertIsNotNone(sub_pg)
