@@ -50,12 +50,12 @@ foreach(sanitizer_name IN ITEMS address thread undefined leak memory)
       # disabled. Add an rpath to the runtime's directory so the probe runs; the
       # same flag is later attached to Sanitizer::address so real targets load it.
       execute_process(
-        COMMAND "${CMAKE_CXX_COMPILER}" -print-file-name=libclang_rt.asan-x86_64.so
+        COMMAND "${CMAKE_CXX_COMPILER}" -print-file-name=libclang_rt.asan-${CMAKE_HOST_SYSTEM_PROCESSOR}.so
         OUTPUT_VARIABLE _asan_runtime_path
         OUTPUT_STRIP_TRAILING_WHITESPACE
         ERROR_QUIET
       )
-      if(_asan_runtime_path AND NOT _asan_runtime_path STREQUAL "libclang_rt.asan-x86_64.so")
+      if(_asan_runtime_path AND NOT _asan_runtime_path STREQUAL "libclang_rt.asan-${CMAKE_HOST_SYSTEM_PROCESSOR}.so")
         get_filename_component(_asan_runtime_dir "${_asan_runtime_path}" DIRECTORY)
         set(_asan_rpath_flag "-Wl,-rpath,${_asan_runtime_dir}")
         list(APPEND CMAKE_REQUIRED_LINK_OPTIONS "${_asan_rpath_flag}")
