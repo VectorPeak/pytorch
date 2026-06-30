@@ -308,6 +308,7 @@ def local_reduce_gemm_act_kwargs(
         return {}
     return {
         LOCAL_REDUCE_RETURNS_KWARG: local_reduce_out is not None,
+        LOCAL_REDUCE_FEEDS_MAIN_KWARG: local_reduce.feeds_main,
         LOCAL_REDUCE_OUT_KWARG: local_reduce_out,
         LOCAL_REDUCE_GROUP_KWARG: local_reduce.group,
         LOCAL_REDUCE_AXIS_KWARG: local_reduce.axis,
